@@ -9,6 +9,7 @@ const app = express();
 
 const allowedOrigins = [
   'https://unsaathi.com',
+    'https://www.unsaathi.com',
   'https://admin.unsaathi.com',
   'http://localhost:3000', // Allow your local frontend for development
   'http://localhost:3001'  // Allow your local admin frontend for development
