@@ -3,10 +3,20 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Blog = require('../models/Blog');
 
-// Get all blogs
+// Get all blogs with pagination, lean queries, and field selection
 router.get('/', async (req, res) => {
   try {
-    const blogs = await Blog.find().sort({ date: -1 });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const blogs = await Blog.find()
+      .sort({ date: -1 })
+      .select('title seoTitle summary date images') // Only fetch required fields
+      .skip(skip)
+      .limit(limit)
+      .lean(); // Returns plain JS objects instead of Mongoose documents
+
     res.json(blogs);
   } catch (err) {
     console.error(err);
@@ -14,7 +24,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create blog
+// Create blog - protected route (auth middleware)
 router.post('/', auth, async (req, res) => {
   try {
     const blog = new Blog(req.body);
@@ -26,7 +36,7 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update blog
+// Update blog - protected route (auth middleware)
 router.put('/:id', auth, async (req, res) => {
   try {
     const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -37,7 +47,7 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// Delete blog
+// Delete blog - protected route (auth middleware)
 router.delete('/:id', auth, async (req, res) => {
   try {
     await Blog.findByIdAndDelete(req.params.id);
@@ -48,33 +58,21 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// GET a single blog post by ID
+// Get a single blog post by ID with lean
 router.get('/:id', async (req, res) => {
-  console.log(`Request received for blog ID: ${req.params.id}`);
   try {
-    // Find the blog by its ID, which is passed in the URL parameters
-    const blog = await Blog.findById(req.params.id);
-
-    // If no blog is found with that ID, return a 404 error
+    const blog = await Blog.findById(req.params.id).lean();
     if (!blog) {
       return res.status(404).json({ msg: 'Blog not found' });
     }
-
-    // If the blog is found, send it back as a JSON response
     res.json(blog);
-    
   } catch (err) {
     console.error(err.message);
-
-    // If the provided ID is not a valid MongoDB ObjectId, it will throw an error
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'Blog not found' });
     }
-
-    // For any other errors, send a generic server error
     res.status(500).json({ msg: 'Server error' });
   }
 });
-
 
 module.exports = router;
