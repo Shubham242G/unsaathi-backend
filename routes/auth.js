@@ -14,7 +14,15 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ msg: 'Username already exists' });
     }
 
-    user = new User({ username, name, password });
+    // ✅ HASH PASSWORD BEFORE SAVING
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    user = new User({ 
+      username, 
+      name, 
+      password: hashedPassword  // ✅ Save hashed password
+    });
     await user.save();
 
     res.status(201).json({ msg: 'User registered successfully' });
@@ -34,6 +42,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
+    // ✅ COMPARE HASHED PASSWORDS
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ msg: 'Invalid credentials' });
