@@ -34,16 +34,14 @@ app.use(express.json({ limit: '50mb' }));        // ✅ Base64 images
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // MongoDB connection
-mongoose
-  .connect(process.env.MONGO_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
+mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 
 // Routes - UPLOAD REMOVED ✅
-app.get('/health', (req, res) => res.send('OK'));
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok' });
+});
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/testimonials', require('./routes/testimonials'));
 app.use('/api/blogs', require('./routes/blogs'));
