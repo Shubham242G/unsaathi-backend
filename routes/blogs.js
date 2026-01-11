@@ -12,18 +12,25 @@ router.get('/', async (req, res) => {
 
     const blogs = await Blog.find()
       .sort({ date: -1 })
-      // 🔽 CHANGED: only thumbnail sent in list
-      .select('title seoTitle summary date images.thumbnail')
+      // ✅ FIXED: Get full Base64 images (first one only for list)
+      .select('title seoTitle summary date images')
       .skip(skip)
       .limit(limit)
       .lean();
 
-    res.json(blogs);
+    // ✅ OPTIONAL: Only send first image for blog list (faster)
+    const blogsWithThumbnail = blogs.map(blog => ({
+      ...blog,
+      images: blog.images?.[0] ? [blog.images[0]] : []  // First image only
+    }));
+
+    res.json(blogsWithThumbnail);
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
+
 
 // Create blog - protected route
 router.post('/', auth, async (req, res) => {
