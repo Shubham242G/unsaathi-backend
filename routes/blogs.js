@@ -12,10 +12,11 @@ router.get('/', async (req, res) => {
 
     const blogs = await Blog.find()
       .sort({ date: -1 })
-      .select('title seoTitle summary date images') // Only fetch required fields
+      // 🔽 CHANGED: only thumbnail sent in list
+      .select('title seoTitle summary date images.thumbnail')
       .skip(skip)
       .limit(limit)
-      .lean(); // Returns plain JS objects instead of Mongoose documents
+      .lean();
 
     res.json(blogs);
   } catch (err) {
@@ -24,7 +25,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create blog - protected route (auth middleware)
+// Create blog - protected route
 router.post('/', auth, async (req, res) => {
   try {
     const blog = new Blog(req.body);
@@ -36,10 +37,12 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update blog - protected route (auth middleware)
+// Update blog - protected route
 router.put('/:id', auth, async (req, res) => {
   try {
-    const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+    });
     res.json(blog);
   } catch (err) {
     console.error(err);
@@ -47,7 +50,7 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// Delete blog - protected route (auth middleware)
+// Delete blog - protected route
 router.delete('/:id', auth, async (req, res) => {
   try {
     await Blog.findByIdAndDelete(req.params.id);
@@ -58,7 +61,7 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// Get a single blog post by ID with lean
+// Get a single blog post by ID (full image returned)
 router.get('/:id', async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id).lean();

@@ -11,7 +11,10 @@ const allowedOrigins = [
   'https://admin.unsaathi.com',
   'https://unsaathi-admin.vercel.app',
   'http://localhost:3000',
-  'http://localhost:3001'
+  'http://localhost:3001',
+  'http://localhost:3002',     
+  'http://127.0.0.1:3000',     
+  'http://admin.unsaathi.com'
 ];
 
 const corsOptions = {
