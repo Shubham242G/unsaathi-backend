@@ -34,7 +34,7 @@ app.use(express.json({ limit: '50mb' }));        // ✅ Base64 images
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // MongoDB connection
-mongoose.connect(MONGODB_URI)
+mongoose.connect(MONGO_URI)
   .then(() => console.log('✅ MongoDB Connected'))
   .catch((err) => console.error('❌ MongoDB connection error:', err));
 
