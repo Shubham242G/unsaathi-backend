@@ -45,6 +45,8 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/testimonials', require('./routes/testimonials'));
 app.use('/api/blogs', require('./routes/blogs'));
+app.use('/api/faq', require('./routes/faq'));
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
