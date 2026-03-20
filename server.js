@@ -14,7 +14,9 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:3002',     
   'http://127.0.0.1:3000',     
-  'http://admin.unsaathi.com'
+  'http://admin.unsaathi.com',
+  'https://unsaathi-admin-9z6op8c6k-shubham-godiyals-projects.vercel.app'
+
 ];
 
 const corsOptions = {
