@@ -27,7 +27,6 @@ router.get('/', async (req, res) => {
 
 
 
-
 // ADMIN POST
 router.post('/', auth, async (req, res) => {
   try {
@@ -69,20 +68,35 @@ router.put('/:id', auth, async (req, res) => {
 
 router.get('/by-category/:category', async (req, res) => {
   const { category } = req.params;
+  const { blogId } = req.query;
 
   try {
-    const faqs = await FAQ.find({
+    const filter = {
       isActive: true,
-      category: category.toLowerCase().trim()
-    }).sort({ order: 1 });
+      category: { $regex: new RegExp(category, 'i') }  // Case-insensitive
+    };
+
+    // If blogId provided, filter by it. Otherwise get general FAQs for that category
+    if (blogId) {
+      filter.blogId = blogId;
+    }
+
+    console.log('🔍 FAQ Filter:', filter);  // Debug log
+
+    const faqs = await FAQ.find(filter).sort({ order: 1 }).lean();
 
     res.json(
-      faqs.map(f => ({
-        question: f.question,
-        answer: f.answer
+      faqs.map(faq => ({
+        _id: faq._id,
+        question: faq.question,
+        answer: faq.answer,
+        category: faq.category || 'general',
+        order: faq.order || 0,
+        isActive: faq.isActive !== false
       }))
     );
   } catch (err) {
+    console.error('❌ FAQ Route Error:', err);  // This will show in backend console
     res.status(500).json({ error: err.message });
   }
 });

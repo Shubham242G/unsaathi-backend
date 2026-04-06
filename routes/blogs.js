@@ -3,7 +3,18 @@ const router = express.Router();
 const auth = require('../middleware/auth');
 const Blog = require('../models/Blog');
 
-// Get all blogs with pagination, lean queries, and field selection
+const generateSlug = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 100);
+};
+
+// GET all blogs
 router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -12,30 +23,42 @@ router.get('/', async (req, res) => {
 
     const blogs = await Blog.find()
       .sort({ date: -1 })
-      // ✅ FIXED: Get full Base64 images (first one only for list)
-      .select('title seoTitle summary date images')
       .skip(skip)
       .limit(limit)
       .lean();
 
-    // ✅ OPTIONAL: Only send first image for blog list (faster)
-    const blogsWithThumbnail = blogs.map(blog => ({
-      ...blog,
-      images: blog.images?.[0] ? [blog.images[0]] : []  // First image only
-    }));
-
-    res.json(blogsWithThumbnail);
+    res.json(blogs);
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
 
-
-// Create blog - protected route
+// CREATE blog
 router.post('/', auth, async (req, res) => {
   try {
-    const blog = new Blog(req.body);
+    console.log('REQ BODY BLOG CREATE:', req.body);
+    console.log('REQ BODY IMAGES:', req.body.images);
+
+    let { slug, title, ...blogData } = req.body;
+
+    const finalSlug = generateSlug(slug || title);
+
+    const existingBlog = await Blog.findOne({ slug: finalSlug });
+    if (existingBlog) {
+      return res.status(400).json({
+        success: false,
+        message: `Slug "${finalSlug}" already exists. Please choose another or use "Generate" button.`,
+        available: false
+      });
+    }
+
+    const blog = new Blog({
+      ...blogData,
+      slug: finalSlug,
+      title
+    });
+
     await blog.save();
     res.status(201).json(blog);
   } catch (err) {
@@ -44,12 +67,39 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
-// Update blog - protected route
+// UPDATE blog
 router.put('/:id', auth, async (req, res) => {
   try {
-    const blog = await Blog.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
+    let { slug, title, ...blogData } = req.body;
+
+    if (slug && slug !== req.body._originalSlug) {
+      const finalSlug = generateSlug(slug || title);
+      const existingBlog = await Blog.findOne({
+        slug: finalSlug,
+        _id: { $ne: req.params.id }
+      });
+
+      if (existingBlog) {
+        return res.status(400).json({
+          success: false,
+          message: `Slug "${finalSlug}" already exists. Please choose another.`,
+          available: false
+        });
+      }
+
+      blogData.slug = finalSlug;
+    }
+
+    const blog = await Blog.findByIdAndUpdate(
+      req.params.id,
+      blogData,
+      { new: true, runValidators: true }
+    );
+
+    if (!blog) {
+      return res.status(404).json({ msg: 'Blog not found' });
+    }
+
     res.json(blog);
   } catch (err) {
     console.error(err);
@@ -57,7 +107,7 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// Delete blog - protected route
+// DELETE blog
 router.delete('/:id', auth, async (req, res) => {
   try {
     await Blog.findByIdAndDelete(req.params.id);
@@ -68,13 +118,31 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// Get a single blog post by ID (full image returned)
-router.get('/:id', async (req, res) => {
+// GET by slug
+router.get('/slug/:slug', async (req, res) => {
   try {
-    const blog = await Blog.findById(req.params.id).lean();
+    const blog = await Blog.findOne({ slug: req.params.slug }).lean();
+
     if (!blog) {
       return res.status(404).json({ msg: 'Blog not found' });
     }
+
+    res.json(blog);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+// GET by id
+router.get('/:id', async (req, res) => {
+  try {
+    const blog = await Blog.findById(req.params.id).lean();
+
+    if (!blog) {
+      return res.status(404).json({ msg: 'Blog not found' });
+    }
+
     res.json(blog);
   } catch (err) {
     console.error(err.message);
