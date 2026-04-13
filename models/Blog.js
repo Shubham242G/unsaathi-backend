@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const FaqSchema = new mongoose.Schema({
   question: { type: String, required: true },
   answer: { type: String, required: true }
-}, { _id: false }); // No separate _id for embedded docs
+}, { _id: false });
 
 const BlogSchema = new mongoose.Schema(
   {
@@ -23,9 +23,9 @@ const BlogSchema = new mongoose.Schema(
     images: {
       thumbnail: { type: String, default: '' },
       cover: { type: String, default: '' },
+      gallery: { type: [String], default: [] }  // ← ADD THIS LINE
     },
 
-    // ✅ NEW: Blog-specific FAQs (embedded array)
     faqs: [FaqSchema],
 
     seoFocusKeyword: { type: String, default: '' },

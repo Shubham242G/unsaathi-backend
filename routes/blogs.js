@@ -70,7 +70,16 @@ router.post('/', auth, async (req, res) => {
 // UPDATE blog
 router.put('/:id', auth, async (req, res) => {
   try {
-    let { slug, title, ...blogData } = req.body;
+    let { slug, title, images, ...blogData } = req.body;
+
+    // Format images if they are being updated
+    if (images) {
+      blogData.images = {
+        thumbnail: images.thumbnail || images.cover || '',
+        cover: images.cover || images.thumbnail || '',
+        gallery: images.gallery || []  // ← IMPORTANT: Save gallery array
+      };
+    }
 
     if (slug && slug !== req.body._originalSlug) {
       const finalSlug = generateSlug(slug || title);
@@ -88,6 +97,10 @@ router.put('/:id', auth, async (req, res) => {
       }
 
       blogData.slug = finalSlug;
+    }
+
+    if (title) {
+      blogData.title = title;
     }
 
     const blog = await Blog.findByIdAndUpdate(
@@ -127,6 +140,15 @@ router.get('/slug/:slug', async (req, res) => {
       return res.status(404).json({ msg: 'Blog not found' });
     }
 
+    // Ensure gallery array exists even if empty
+    if (!blog.images) {
+      blog.images = { thumbnail: '', cover: '', gallery: [] };
+    }
+    if (!blog.images.gallery) {
+      blog.images.gallery = [];
+    }
+
+    console.log('Returning blog with gallery count:', blog.images.gallery.length);
     res.json(blog);
   } catch (err) {
     console.error(err);
@@ -134,13 +156,21 @@ router.get('/slug/:slug', async (req, res) => {
   }
 });
 
-// GET by id
+// GET by id - Ensure gallery is returned
 router.get('/:id', async (req, res) => {
   try {
     const blog = await Blog.findById(req.params.id).lean();
 
     if (!blog) {
       return res.status(404).json({ msg: 'Blog not found' });
+    }
+
+    // Ensure gallery array exists even if empty
+    if (!blog.images) {
+      blog.images = { thumbnail: '', cover: '', gallery: [] };
+    }
+    if (!blog.images.gallery) {
+      blog.images.gallery = [];
     }
 
     res.json(blog);
